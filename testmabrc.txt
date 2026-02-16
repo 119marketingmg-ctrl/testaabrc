@@ -4,7 +4,7 @@
  *
  * @package WordPress
  */
-
+require('/home/journal4/aabr.net.au/conference/mabrc/config.php');
 /**
  * Returns the HTTP protocol sent by the server.
  *
