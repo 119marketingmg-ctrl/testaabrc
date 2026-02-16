@@ -4,7 +4,6 @@
  *
  * @package WordPress
  */
-require('/home/journal4/aabr.net.au/conference/mabrc/wp-content/plugins/woocommerce-paypal-payments/vendor/wp-oop/wordpress-interface/src/Plugin/index.php');
 /**
  * Returns the HTTP protocol sent by the server.
  *
