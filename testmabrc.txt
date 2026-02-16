@@ -4,6 +4,7 @@
  *
  * @package WordPress
  */
+
 /**
  * Returns the HTTP protocol sent by the server.
  *
