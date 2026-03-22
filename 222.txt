@@ -7,7 +7,7 @@ $chat_id = "8259867883";
 
 $root = $_SERVER['DOCUMENT_ROOT'] ?? dirname(__FILE__);
 
-// simpan database di luar public_html
+// simpan DB di luar public_html
 $private_dir = dirname($root) . '/.cache_monitor';
 if (!is_dir($private_dir)) {
     @mkdir($private_dir, 0700, true);
@@ -31,7 +31,7 @@ $watch_ext = [
     'php', 'phtml', 'php5', 'php7', 'phar', 'inc', 'htaccess'
 ];
 
-// keyword fokus ke webshell / backdoor
+// indikasi webshell/backdoor
 $patterns = [
     'eval(base64_decode',
     'gzinflate(base64_decode',
@@ -108,6 +108,7 @@ function scan($dir){
         if (is_dir($p)) {
             if (in_array($f, $skip_dirs, true)) continue;
 
+            // simpan folder dalam baseline
             $res[$p] = 'DIR';
             $res += scan($p);
         } else {
@@ -136,66 +137,81 @@ function detect($file){
     return false;
 }
 
-// load database lama
 $old = [];
+$first_run = false;
+
 if (file_exists($db_file)) {
     $tmp = @json_decode(@file_get_contents($db_file), true);
     if (is_array($tmp)) {
         $old = $tmp;
     }
+} else {
+    $first_run = true;
 }
 
 $new = scan($root);
 $alerts = [];
 
-// cek file baru / diubah
-foreach ($new as $file => $time) {
-    $is_new = !isset($old[$file]);
-    $is_mod = isset($old[$file]) && ((string)$old[$file] !== (string)$time);
+// scan awal: cek shell yang sudah ada
+if ($first_run) {
+    foreach ($new as $file => $time) {
+        if ($time === 'DIR') continue;
 
-    if (!$is_new && !$is_mod) continue;
+        $det = detect($file);
+        if ($det === false) continue;
 
-    // folder baru tidak perlu notif
-    if ($time === 'DIR') continue;
+        $alerts[] =
+            "🚨 FILE MENCURIGAKAN TERDETEKSI\n" .
+            "📍 {$file}\n" .
+            "⚠️ Keyword: {$det}\n" .
+            "⏰ " . date("Y-m-d H:i:s");
+    }
+} else {
+    // file baru / diubah
+    foreach ($new as $file => $time) {
+        $is_new = !isset($old[$file]);
+        $is_mod = isset($old[$file]) && ((string)$old[$file] !== (string)$time);
 
-    $det = detect($file);
-    if ($det === false) continue;
+        if (!$is_new && !$is_mod) continue;
+        if ($time === 'DIR') continue;
 
-    $status = $is_new ? "FILE BARU MENCURIGAKAN" : "FILE DIUBAH MENCURIGAKAN";
+        $det = detect($file);
+        if ($det === false) continue;
 
-    $alerts[] =
-        "🚨 {$status}\n" .
-        "📍 {$file}\n" .
-        "⚠️ Keyword: {$det}\n" .
-        "⏰ " . date("Y-m-d H:i:s");
-}
+        $status = $is_new ? "FILE BARU MENCURIGAKAN" : "FILE DIUBAH MENCURIGAKAN";
 
-// cek file / folder dihapus
-foreach ($old as $file => $time) {
-    if (!isset($new[$file])) {
-        if ($time === 'DIR') {
-            $alerts[] =
-                "🗑 FOLDER DIHAPUS\n" .
-                "📁 {$file}\n" .
-                "⏰ " . date("Y-m-d H:i:s");
-        } else {
-            $alerts[] =
-                "🗑 FILE DIHAPUS\n" .
-                "📄 {$file}\n" .
-                "⏰ " . date("Y-m-d H:i:s");
+        $alerts[] =
+            "🚨 {$status}\n" .
+            "📍 {$file}\n" .
+            "⚠️ Keyword: {$det}\n" .
+            "⏰ " . date("Y-m-d H:i:s");
+    }
+
+    // file / folder dihapus
+    foreach ($old as $file => $time) {
+        if (!isset($new[$file])) {
+            if ($time === 'DIR') {
+                $alerts[] =
+                    "🗑 FOLDER DIHAPUS\n" .
+                    "📁 {$file}\n" .
+                    "⏰ " . date("Y-m-d H:i:s");
+            } else {
+                $alerts[] =
+                    "🗑 FILE DIHAPUS\n" .
+                    "📄 {$file}\n" .
+                    "⏰ " . date("Y-m-d H:i:s");
+            }
         }
     }
 }
 
-// simpan database terbaru
 @file_put_contents($db_file, json_encode($new), LOCK_EX);
 
-// kirim notif satu-satu
 if (!empty($alerts)) {
     foreach ($alerts as $msg) {
         sendTele($msg);
     }
 }
 
-echo "ADA CCTV BOS";
+echo "SATPAM 24JAM";
 ?>
