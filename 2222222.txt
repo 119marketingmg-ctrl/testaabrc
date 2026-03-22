@@ -1,0 +1,150 @@
+<?php
+error_reporting(0);
+set_time_limit(0);
+
+$token   = "8687462257:AAEzX81PQXglaSAcKi2pz1zg01Kb-XXBOQ4";
+$chat_id = "8259867883";
+
+$root = $_SERVER['DOCUMENT_ROOT'] ?? dirname(__FILE__);
+
+// simpan database di luar public_html
+$private_dir = dirname($root) . '/.cache_monitor';
+if (!is_dir($private_dir)) {
+    @mkdir($private_dir, 0700, true);
+}
+
+$db_file = $private_dir . '/.db.dat';
+
+// folder yang di-skip
+$skip_dirs = [
+    '.git',
+    'node_modules',
+    'vendor',
+    'tmp',
+    'logs',
+    'cache',
+    '__pycache__'
+];
+
+// file yang dipantau
+$watch_ext = [
+    'php', 'phtml', 'php5', 'php7', 'phar', 'inc', 'htaccess'
+];
+
+function sendTele($msg){
+    global $token, $chat_id;
+
+    if (strlen($msg) > 3500) {
+        $msg = substr($msg, 0, 3500) . "\n\n[Pesan dipotong]";
+    }
+
+    $url = "https://api.telegram.org/bot{$token}/sendMessage";
+    $post = http_build_query([
+        'chat_id' => $chat_id,
+        'text'    => $msg
+    ]);
+
+    $context = stream_context_create([
+        'http' => [
+            'method'  => 'POST',
+            'header'  => "Content-Type: application/x-www-form-urlencoded\r\n",
+            'content' => $post,
+            'timeout' => 20
+        ]
+    ]);
+
+    @file_get_contents($url, false, $context);
+}
+
+function should_watch($file){
+    global $watch_ext;
+
+    $base = basename($file);
+    if ($base === '.htaccess') return true;
+
+    $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+    return in_array($ext, $watch_ext, true);
+}
+
+function scan($dir){
+    global $skip_dirs;
+
+    $res = [];
+    $list = @scandir($dir);
+    if ($list === false) return $res;
+
+    foreach ($list as $f) {
+        if ($f === '.' || $f === '..') continue;
+
+        $p = $dir . '/' . $f;
+
+        if (is_dir($p)) {
+            if (in_array($f, $skip_dirs, true)) continue;
+
+            $res[$p] = 'DIR';
+            $res += scan($p);
+        } else {
+            if (!should_watch($p)) continue;
+            $res[$p] = @filemtime($p) ?: 0;
+        }
+    }
+
+    return $res;
+}
+
+$old = [];
+if (file_exists($db_file)) {
+    $tmp = @json_decode(@file_get_contents($db_file), true);
+    if (is_array($tmp)) {
+        $old = $tmp;
+    }
+}
+
+$new = scan($root);
+$alerts = [];
+
+// file baru / diubah
+foreach ($new as $file => $time) {
+    $is_new = !isset($old[$file]);
+    $is_mod = isset($old[$file]) && ((string)$old[$file] !== (string)$time);
+
+    if (!$is_new && !$is_mod) continue;
+
+    if ($time === 'DIR') {
+        continue;
+    }
+
+    $status = $is_new ? "FILE BARU TERDETEKSI" : "FILE DIUBAH";
+    $alerts[] =
+        "🚨 {$status}\n" .
+        "📄 {$file}\n" .
+        "⏰ " . date("Y-m-d H:i:s");
+}
+
+// file / folder dihapus
+foreach ($old as $file => $time) {
+    if (!isset($new[$file])) {
+        if ($time === 'DIR') {
+            $alerts[] =
+                "🗑 FOLDER DIHAPUS\n" .
+                "📁 {$file}\n" .
+                "⏰ " . date("Y-m-d H:i:s");
+        } else {
+            $alerts[] =
+                "🗑 FILE DIHAPUS\n" .
+                "📄 {$file}\n" .
+                "⏰ " . date("Y-m-d H:i:s");
+        }
+    }
+}
+
+@file_put_contents($db_file, json_encode($new), LOCK_EX);
+
+if (!empty($alerts)) {
+    foreach ($alerts as $msg) {
+        sendTele($msg);
+    }
+}
+
+echo "SATPAM 24JAM";
+?>
