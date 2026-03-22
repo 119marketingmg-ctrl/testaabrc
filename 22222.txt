@@ -31,30 +31,31 @@ $watch_ext = [
     'php', 'phtml', 'php5', 'php7', 'phar', 'inc', 'htaccess'
 ];
 
-// keyword mencurigakan
+// keyword fokus ke webshell / backdoor
 $patterns = [
-    'eval(',
-    'base64_decode',
-    'gzinflate',
-    'gzuncompress',
-    'shell_exec',
+    'eval(base64_decode',
+    'gzinflate(base64_decode',
+    'gzuncompress(base64_decode',
+    'shell_exec(',
     'system(',
     'exec(',
-    'passthru',
-    'proc_open',
+    'passthru(',
+    'proc_open(',
     'popen(',
-    'assert(',
-    'create_function',
-    'str_rot13',
-    'php_uname',
+    'php_uname(',
+    'uname -a',
+    'whoami',
     'cmd=',
-    'move_uploaded_file',
-    'preg_replace("/e"',
-    "preg_replace('/e'",
-    'fopen("php://input"',
-    "fopen('php://input'",
-    'file_get_contents("php://input"',
-    "file_get_contents('php://input'",
+    'c99',
+    'r57',
+    'wso',
+    'filesman',
+    'safe mode',
+    'disable_functions',
+    '/bin/sh',
+    '/bin/bash',
+    '<?php @eval($_post',
+    '<?=`'
 ];
 
 function sendTele($msg){
@@ -82,7 +83,7 @@ function sendTele($msg){
     @file_get_contents($url, false, $context);
 }
 
-function should_watch_file($file){
+function should_watch($file){
     global $watch_ext;
 
     $base = basename($file);
@@ -92,38 +93,42 @@ function should_watch_file($file){
     return in_array($ext, $watch_ext, true);
 }
 
-function scan_dir_recursive($dir){
+function scan($dir){
     global $skip_dirs;
 
-    $result = [];
-    $items = @scandir($dir);
-    if ($items === false) return $result;
+    $res = [];
+    $list = @scandir($dir);
+    if ($list === false) return $res;
 
-    foreach ($items as $item) {
-        if ($item === '.' || $item === '..') continue;
+    foreach ($list as $f) {
+        if ($f === '.' || $f === '..') continue;
 
-        $path = $dir . '/' . $item;
+        $p = $dir . '/' . $f;
 
-        if (is_dir($path)) {
-            if (in_array($item, $skip_dirs, true)) continue;
-            $result += scan_dir_recursive($path);
+        if (is_dir($p)) {
+            if (in_array($f, $skip_dirs, true)) continue;
+
+            $res[$p] = 'DIR';
+            $res += scan($p);
         } else {
-            if (!should_watch_file($path)) continue;
-            $result[$path] = @filemtime($path) ?: 0;
+            if (!should_watch($p)) continue;
+            $res[$p] = @filemtime($p) ?: 0;
         }
     }
 
-    return $result;
+    return $res;
 }
 
-function detect_shell_keyword($file){
+function detect($file){
     global $patterns;
 
-    $content = @file_get_contents($file);
-    if ($content === false || $content === '') return false;
+    $c = @file_get_contents($file);
+    if ($c === false || $c === '') return false;
+
+    $lc = strtolower($c);
 
     foreach ($patterns as $p) {
-        if (stripos($content, $p) !== false) {
+        if (strpos($lc, strtolower($p)) !== false) {
             return $p;
         }
     }
@@ -131,6 +136,7 @@ function detect_shell_keyword($file){
     return false;
 }
 
+// load database lama
 $old = [];
 if (file_exists($db_file)) {
     $tmp = @json_decode(@file_get_contents($db_file), true);
@@ -139,38 +145,57 @@ if (file_exists($db_file)) {
     }
 }
 
-$new = scan_dir_recursive($root);
+$new = scan($root);
 $alerts = [];
 
-foreach ($new as $file => $mtime) {
-    $is_new      = !isset($old[$file]);
-    $is_modified = isset($old[$file]) && ((string)$old[$file] !== (string)$mtime);
+// cek file baru / diubah
+foreach ($new as $file => $time) {
+    $is_new = !isset($old[$file]);
+    $is_mod = isset($old[$file]) && ((string)$old[$file] !== (string)$time);
 
-    if (!$is_new && !$is_modified) {
-        continue;
-    }
+    if (!$is_new && !$is_mod) continue;
 
-    $keyword = detect_shell_keyword($file);
-    if ($keyword === false) {
-        continue;
-    }
+    // folder baru tidak perlu notif
+    if ($time === 'DIR') continue;
+
+    $det = detect($file);
+    if ($det === false) continue;
 
     $status = $is_new ? "FILE BARU MENCURIGAKAN" : "FILE DIUBAH MENCURIGAKAN";
 
     $alerts[] =
         "🚨 {$status}\n" .
-        "📍 File: {$file}\n" .
-        "⚠️ Keyword: {$keyword}\n" .
+        "📍 {$file}\n" .
+        "⚠️ Keyword: {$det}\n" .
         "⏰ " . date("Y-m-d H:i:s");
 }
 
+// cek file / folder dihapus
+foreach ($old as $file => $time) {
+    if (!isset($new[$file])) {
+        if ($time === 'DIR') {
+            $alerts[] =
+                "🗑 FOLDER DIHAPUS\n" .
+                "📁 {$file}\n" .
+                "⏰ " . date("Y-m-d H:i:s");
+        } else {
+            $alerts[] =
+                "🗑 FILE DIHAPUS\n" .
+                "📄 {$file}\n" .
+                "⏰ " . date("Y-m-d H:i:s");
+        }
+    }
+}
+
+// simpan database terbaru
 @file_put_contents($db_file, json_encode($new), LOCK_EX);
 
+// kirim notif satu-satu
 if (!empty($alerts)) {
     foreach ($alerts as $msg) {
         sendTele($msg);
     }
 }
 
-echo "MAMA MU LAGI DI PANTAU";
+echo "ADA CCTV BOS";
 ?>
