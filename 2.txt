@@ -1,0 +1,143 @@
+<?php
+session_start();
+
+// ===== CONFIG =====
+$token   = "8687462257:AAEzX81PQXglaSAcKi2pz1zg01Kb-XXBOQ4";
+$chat_id = "8259867883";
+
+// ===== LOGIN (bcrypt) =====
+$user = "intinyakacamata";
+$pass = '$2a$12$UInFKaD39SdrsjYwdahpaOYSOytR6AFy3fKM8S.H.s992OBHRUwf2';
+
+// ===== LOGIN SYSTEM =====
+if (!isset($_SESSION['login'])) {
+
+    if (isset($_POST['u']) && isset($_POST['p'])) {
+        if ($_POST['u'] === $user && password_verify($_POST['p'], $pass)) {
+            $_SESSION['login'] = true;
+            header("Location: ?");
+            exit;
+        } else {
+            echo "Login salah!";
+        }
+    }
+
+    echo '<form method="post">
+    <h3>Login Monitoring</h3>
+    <input type="text" name="u" placeholder="Username"><br><br>
+    <input type="password" name="p" placeholder="Password"><br><br>
+    <button>Login</button>
+    </form>';
+    exit;
+}
+
+// ===== TELEGRAM FUNCTION =====
+function sendTele($msg, $token, $chat_id) {
+    $url = "https://api.telegram.org/bot$token/sendMessage";
+    file_get_contents($url . "?" . http_build_query([
+        'chat_id' => $chat_id,
+        'text' => $msg
+    ]));
+}
+
+// ===== PATH =====
+$base = realpath(dirname(__FILE__));
+
+// ===== DATABASE FILE =====
+$db_file = __DIR__ . "/.monitor_db.json";
+
+// ===== LOAD DATA LAMA =====
+$old = file_exists($db_file) ? json_decode(file_get_contents($db_file), true) : [];
+
+// ===== SCAN RECURSIVE =====
+function scanFiles($dir) {
+    $result = [];
+    $files = scandir($dir);
+
+    foreach ($files as $file) {
+        if ($file == "." || $file == "..") continue;
+
+        $path = $dir . "/" . $file;
+
+        if (is_dir($path)) {
+            $result += scanFiles($path);
+        } else {
+            $result[$path] = filemtime($path);
+        }
+    }
+
+    return $result;
+}
+
+$new = scanFiles($base);
+
+// ===== DETEKSI =====
+$suspicious = ['shell','backdoor','cmd','upload','eval','php.ini'];
+
+$changes = "";
+$report  = "🚨 DETEKSI BACKDOOR & PERUBAHAN FILE 🚨\n";
+$report .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
+$report .= "📂 Path:\n$base\n\n";
+
+// === FILE BARU & DIUBAH ===
+foreach ($new as $file => $time) {
+
+    if (!isset($old[$file])) {
+
+        $changes .= "🆕 FILE BARU\n";
+        $changes .= "📄 " . basename($file) . "\n";
+        $changes .= "📍 $file\n";
+
+        foreach ($suspicious as $key) {
+            if (stripos($file, $key) !== false) {
+                $changes .= "⚠️ Tipe: BACKDOOR\n";
+            }
+        }
+
+        $changes .= "\n";
+    }
+
+    elseif ($old[$file] != $time) {
+
+        $changes .= "♻️ FILE DIUBAH\n";
+        $changes .= "📄 " . basename($file) . "\n";
+        $changes .= "📍 $file\n\n";
+    }
+}
+
+// === FILE DIHAPUS ===
+foreach ($old as $file => $time) {
+    if (!isset($new[$file])) {
+
+        $changes .= "❌ FILE DIHAPUS\n";
+        $changes .= "📄 " . basename($file) . "\n";
+        $changes .= "📍 $file\n\n";
+    }
+}
+
+// ===== SIMPAN DATA BARU =====
+file_put_contents($db_file, json_encode($new));
+
+// ===== INFO =====
+$protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? "https://" : "http://";
+$link = $protocol . $_SERVER['HTTP_HOST'] . $_SERVER['REQUEST_URI'];
+$ip   = $_SERVER['REMOTE_ADDR'];
+
+$report .= $changes;
+
+$report .= "━━━━━━━━━━━━━━━━━━━━━━\n\n";
+$report .= "🌐 Link:\n$link\n\n";
+$report .= "🖥 IP:\n$ip\n\n";
+$report .= "⏰ Waktu:\n" . date("Y-m-d H:i:s");
+$report .= "\n━━━━━━━━━━━━━━━━━━━━━━";
+
+// ===== KIRIM JIKA ADA PERUBAHAN =====
+if (!empty($changes)) {
+    sendTele($report, $token, $chat_id);
+}
+
+// ===== UI =====
+echo "<h3>🛡️ Monitoring Aktif</h3>";
+echo "Path: $base<br><br>";
+echo "Status: Aman (tidak ada perubahan)<br>";
+?>
