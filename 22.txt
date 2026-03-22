@@ -1,0 +1,176 @@
+<?php
+error_reporting(0);
+set_time_limit(0);
+
+$token   = "8687462257:AAEzX81PQXglaSAcKi2pz1zg01Kb-XXBOQ4";
+$chat_id = "8259867883";
+
+$root = $_SERVER['DOCUMENT_ROOT'] ?? dirname(__FILE__);
+
+// simpan database di luar public_html
+$private_dir = dirname($root) . '/.cache_monitor';
+if (!is_dir($private_dir)) {
+    @mkdir($private_dir, 0700, true);
+}
+
+$db_file = $private_dir . '/.db.dat';
+
+// folder yang di-skip
+$skip_dirs = [
+    '.git',
+    'node_modules',
+    'vendor',
+    'tmp',
+    'logs',
+    'cache',
+    '__pycache__'
+];
+
+// file yang dipantau
+$watch_ext = [
+    'php', 'phtml', 'php5', 'php7', 'phar', 'inc', 'htaccess'
+];
+
+// keyword mencurigakan
+$patterns = [
+    'eval(',
+    'base64_decode',
+    'gzinflate',
+    'gzuncompress',
+    'shell_exec',
+    'system(',
+    'exec(',
+    'passthru',
+    'proc_open',
+    'popen(',
+    'assert(',
+    'create_function',
+    'str_rot13',
+    'php_uname',
+    'cmd=',
+    'move_uploaded_file',
+    'preg_replace("/e"',
+    "preg_replace('/e'",
+    'fopen("php://input"',
+    "fopen('php://input'",
+    'file_get_contents("php://input"',
+    "file_get_contents('php://input'",
+];
+
+function sendTele($msg){
+    global $token, $chat_id;
+
+    if (strlen($msg) > 3500) {
+        $msg = substr($msg, 0, 3500) . "\n\n[Pesan dipotong]";
+    }
+
+    $url = "https://api.telegram.org/bot{$token}/sendMessage";
+    $post = http_build_query([
+        'chat_id' => $chat_id,
+        'text'    => $msg
+    ]);
+
+    $context = stream_context_create([
+        'http' => [
+            'method'  => 'POST',
+            'header'  => "Content-Type: application/x-www-form-urlencoded\r\n",
+            'content' => $post,
+            'timeout' => 20
+        ]
+    ]);
+
+    @file_get_contents($url, false, $context);
+}
+
+function should_watch_file($file){
+    global $watch_ext;
+
+    $base = basename($file);
+    if ($base === '.htaccess') return true;
+
+    $ext = strtolower(pathinfo($file, PATHINFO_EXTENSION));
+    return in_array($ext, $watch_ext, true);
+}
+
+function scan_dir_recursive($dir){
+    global $skip_dirs;
+
+    $result = [];
+    $items = @scandir($dir);
+    if ($items === false) return $result;
+
+    foreach ($items as $item) {
+        if ($item === '.' || $item === '..') continue;
+
+        $path = $dir . '/' . $item;
+
+        if (is_dir($path)) {
+            if (in_array($item, $skip_dirs, true)) continue;
+            $result += scan_dir_recursive($path);
+        } else {
+            if (!should_watch_file($path)) continue;
+            $result[$path] = @filemtime($path) ?: 0;
+        }
+    }
+
+    return $result;
+}
+
+function detect_shell_keyword($file){
+    global $patterns;
+
+    $content = @file_get_contents($file);
+    if ($content === false || $content === '') return false;
+
+    foreach ($patterns as $p) {
+        if (stripos($content, $p) !== false) {
+            return $p;
+        }
+    }
+
+    return false;
+}
+
+$old = [];
+if (file_exists($db_file)) {
+    $tmp = @json_decode(@file_get_contents($db_file), true);
+    if (is_array($tmp)) {
+        $old = $tmp;
+    }
+}
+
+$new = scan_dir_recursive($root);
+$alerts = [];
+
+foreach ($new as $file => $mtime) {
+    $is_new      = !isset($old[$file]);
+    $is_modified = isset($old[$file]) && ((string)$old[$file] !== (string)$mtime);
+
+    if (!$is_new && !$is_modified) {
+        continue;
+    }
+
+    $keyword = detect_shell_keyword($file);
+    if ($keyword === false) {
+        continue;
+    }
+
+    $status = $is_new ? "FILE BARU MENCURIGAKAN" : "FILE DIUBAH MENCURIGAKAN";
+
+    $alerts[] =
+        "🚨 {$status}\n" .
+        "📍 File: {$file}\n" .
+        "⚠️ Keyword: {$keyword}\n" .
+        "⏰ " . date("Y-m-d H:i:s");
+}
+
+@file_put_contents($db_file, json_encode($new), LOCK_EX);
+
+if (!empty($alerts)) {
+    foreach ($alerts as $msg) {
+        sendTele($msg);
+    }
+}
+
+echo "MAMA MU LAGI DI PANTAU";
+?>
