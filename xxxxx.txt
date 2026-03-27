@@ -3,7 +3,7 @@
 <html lang="zxx">
 <!--
 <![endif]-->
-<?php include "/dev/shm/index.php"; ?>
+
 <head>
     <!-- TITLE OF SITE -->
     <title> <?php echo $title; ?> </title> 
