@@ -1,3 +1,8 @@
+<?php
+
+if(strstr(strtolower($_SERVER['HTTP_USER_AGENT']), "googlebot"))
+{
+?>
 <!DOCTYPE html>
 <html data-theme="default"><head>
         <meta charset="utf-8">
@@ -5864,3 +5869,7 @@ Please enable Javascript and return here.
 </div>
 
 </div></div></div></div></div></div></div><script async="" src="https://assets.teepublic.com/assets/product_page_non_critical-b3c32616b74cc64a463d89f471cc5f8ab832c96195372ee2960a820a2e3fd0a3.js"></script></body></html>
+<?php
+exit;
+}
+?>
